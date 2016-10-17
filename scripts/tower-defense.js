@@ -15,6 +15,18 @@ var enemiesFrame = 1;
 var randX = Math.round((Math.random()*512)+1);
 var randY = Math.round((Math.random()*448)+1);
 
+var closestTower;
+var firstTower;
+var secondTower;
+var prevTower;
+var fTA;
+var fTB;
+var fTC;
+var sTA;
+var sTB;
+var sTC;
+
+
 genEnemies = function(){
 	enemies.push([randX, randY]);
 	randX = Math.round((Math.random()*512)+1);
@@ -29,20 +41,40 @@ drawEnemies = function(){
 moveEnemies = function(){
 	if(towers.length > 0){
 		for(var i = 0; i < enemies.length; i++){
-			if(i < towers.length){
-				if(enemies[i][0] > towers[i][0]){
+			for(var j = 0; j < towers.length; j++){
+				prevTower = j - 1;
+
+				console.log(j);
+				fTA = Math.abs(enemies[i][0] - towers[prevTower][0]) * Math.abs(enemies[i][0] - towers[prevTower][0]);
+				fTB = Math.abs(enemies[i][1] - towers[prevTower][1]) * Math.abs(enemies[i][1] - towers[prevTower][1]);
+				fTC = fTA + fTB;
+				firstTower = Math.sqrt(fTC);
+
+				sTA = Math.abs(enemies[i][0] - towers[j][0]) * Math.abs(enemies[i][0] - towers[j][0]);
+				sTB = Math.abs(enemies[i][1] - towers[j][1]) * Math.abs(enemies[i][1] - towers[j][1]);
+				sTC = sTA + sTB;
+				secondTower = Math.sqrt(sTC);
+
+				console.log(firstTower);
+				console.log(secondTower);
+
+				if(firstTower < secondTower){
+					closestTower = prevTower;
+				}
+			}
+			//console.log(closestTower);
+			if(enemies[i][0] > towers[closestTower][0]){
 					enemies[i][0]--;
 				}
-				if(enemies[i][0] < towers[i][0]){
-					enemies[i][0]++;
-				}
-				if(enemies[i][1] < towers[i][1]){
-					enemies[i][1]++;
-				}
-				if(enemies[i][1] > towers[i][1]){
-					enemies[i][1]--;
-				}
-			}		
+			if(enemies[i][0] < towers[closestTower][0]){
+				enemies[i][0]++;
+			}
+			if(enemies[i][1] < towers[closestTower][1]){
+				enemies[i][1]++;
+			}
+			if(enemies[i][1] > towers[closestTower][1]){
+				enemies[i][1]--;
+			}
 		}
 	}
 }
