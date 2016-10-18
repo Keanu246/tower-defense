@@ -1,36 +1,44 @@
 var canvas = document.getElementById('canvas')
 c = canvas.getContext('2d')
 
+var play = true
+var difficulty = 500
 
+var towers = [[246, 214]]
 
-var play = true;
-var difficulty = 500;
+//Variables used for enemies[]
+var enemies = []
+var enemiesRate = Math.round((Math.random()*difficulty)+1)
+var enemiesFrame = 1
 
-var towers = [];
-
-var enemies = [];
-var enemiesRate = Math.round((Math.random()*difficulty)+1);
-var enemiesFrame = 1;
-
-var randX = Math.round((Math.random()*512)+1);
-var randY = Math.round((Math.random()*448)+1);
-
-var closestTower;
-var firstTower;
-var secondTower;
-var prevTower;
-var fTA;
-var fTB;
-var fTC;
-var sTA;
-var sTB;
-var sTC;
-
-
-genEnemies = function(){
-	enemies.push([randX, randY]);
+//Used to generate random numbers on X/Y axes
+var randX
+var randY
+genRand = function(){
 	randX = Math.round((Math.random()*512)+1);
 	randY = Math.round((Math.random()*448)+1);
+}
+
+//Variables used to determine which tower is closest to a
+////given enemy  
+//A, B, C are Pythagorean variables used to determine distance
+////on X/Y axes
+var closestTower
+var prevTower
+var lastTower
+var firstTower
+var fTA
+var fTB
+var fTC
+var secondTower
+var sTA
+var sTB
+var sTC
+
+genEnemies = function(){
+	genRand();
+	enemies.push([randX, randY]);
+	//moveEnemies();
 }
 drawEnemies = function(){
 	for(var i = 0; i < enemies.length; i++){
@@ -39,12 +47,12 @@ drawEnemies = function(){
 	}
 }
 moveEnemies = function(){
-	if(towers.length > 0){
+	if(towers.length > 1){
 		for(var i = 0; i < enemies.length; i++){
-			for(var j = 0; j < towers.length; j++){
+			for(var j = 1; j < towers.length; j++){
 				prevTower = j - 1;
 
-				console.log(j);
+				//console.log(j);
 				fTA = Math.abs(enemies[i][0] - towers[prevTower][0]) * Math.abs(enemies[i][0] - towers[prevTower][0]);
 				fTB = Math.abs(enemies[i][1] - towers[prevTower][1]) * Math.abs(enemies[i][1] - towers[prevTower][1]);
 				fTC = fTA + fTB;
@@ -55,12 +63,28 @@ moveEnemies = function(){
 				sTC = sTA + sTB;
 				secondTower = Math.sqrt(sTC);
 
-				console.log(firstTower);
-				console.log(secondTower);
+				//console.log(firstTower);
+				//console.log(secondTower);
 
 				if(firstTower < secondTower){
 					closestTower = prevTower;
 				}
+			}
+
+			lastTower = towers.length - 1;
+
+			fTA = Math.abs(enemies[i][0] - towers[lastTower][0]) * Math.abs(enemies[i][0] - towers[lastTower][0]);
+			fTB = Math.abs(enemies[i][1] - towers[lastTower][1]) * Math.abs(enemies[i][1] - towers[lastTower][1]);
+			fTC = fTA + fTB;
+			firstTower = Math.sqrt(fTC);
+
+			sTA = Math.abs(enemies[i][0] - towers[0][0]) * Math.abs(enemies[i][0] - towers[0][0]);
+			sTB = Math.abs(enemies[i][1] - towers[0][1]) * Math.abs(enemies[i][1] - towers[0][1]);
+			sTC = sTA + sTB;
+			secondTower = Math.sqrt(sTC);
+
+			if(firstTower < secondTower){
+				closestTower = lastTower;
 			}
 			//console.log(closestTower);
 			if(enemies[i][0] > towers[closestTower][0]){
@@ -73,6 +97,27 @@ moveEnemies = function(){
 				enemies[i][1]++;
 			}
 			if(enemies[i][1] > towers[closestTower][1]){
+				enemies[i][1]--;
+			}
+			if(enemies[i][1] === towers[closestTower][1] 
+			&& enemies[i][0] === towers[closestTower][0]){
+				//play = false;
+				//console.log(firstTower);
+				//console.log(secondTower);
+			}
+		}
+	} else {
+		for(var i = 0; i < enemies.length; i++){
+			if(enemies[i][0] > towers[0][0]){
+					enemies[i][0]--;
+				}
+			if(enemies[i][0] < towers[0][0]){
+				enemies[i][0]++;
+			}
+			if(enemies[i][1] < towers[0][1]){
+				enemies[i][1]++;
+			}
+			if(enemies[i][1] > towers[0][1]){
 				enemies[i][1]--;
 			}
 		}
