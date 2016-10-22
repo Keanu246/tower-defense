@@ -166,19 +166,19 @@ moveEnemies = function(){
 		slope = changeY / changeX;
 
 		if(changeX < 0
-		&& enemies[i].x < towers[closestTower].x - 20
-		&& enemies[i].y < towers[closestTower].y - 20){
+		&& enemies[i].x < towers[closestTower].x - 20){
 			enemies[i].x++;
-			if(gameFrame % Math.round(slope) === 0){
+			if(gameFrame % Math.round(slope) === 0
+			&& enemies[i].y < towers[closestTower].y - 20){
 				enemies[i].y+=slope;
 			}
 			enemies[i].move = true;
 		}
 		if(changeX > 0
-		&& enemies[i].y > towers[closestTower].y + 20
 		&& enemies[i].x > towers[closestTower].x + 20){
 			enemies[i].x--;
-			if(gameFrame % Math.round(slope) === 0){
+			if(gameFrame % Math.round(slope) === 0
+			&& enemies[i].y > towers[closestTower].y + 20){
 				enemies[i].y-=slope;
 			}
 			enemies[i].move = true;
