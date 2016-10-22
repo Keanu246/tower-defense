@@ -3,8 +3,10 @@ c = canvas.getContext('2d')
 
 var play = true
 var difficulty = 500
-var gameFrame = 1;
-var money = 100;
+var points = 0
+var gameFrame = 1
+var money = 100
+var towersDestroyed = 0;
 
 //Variables used for towers[]
 var towers = [{x: 246, y: 214, height: 40, width: 40, hp: 10, range: 200, attackFrame: Math.round(Math.random()*120)}]
@@ -57,6 +59,7 @@ genEnemies = function(){
 		target: 0, 
 		move: true, 
 		hp: 5, 
+		range: 100,
 		height: 20, 
 		width: 20, 
 		attackFrame: Math.round((Math.random()*180)+60), 
@@ -151,6 +154,8 @@ enemiesAttack = function(){
 			}
 			if(towers[closestTower].hp <= 0){
 				towers.splice(closestTower, 1);
+				towersDestroyed++;
+				updateText();
 				//towers[closestTower] = {};
 				findClosestTower();
 				i = enemies.length + 1;
@@ -161,30 +166,31 @@ enemiesAttack = function(){
 moveEnemies = function(){
 	for(var i = 0; i < enemies.length; i++){
 		closestTower = enemies[i].target;
-		changeX = enemies[i].x - towers[enemies[i].target].x;
-		changeY = enemies[i].y - towers[enemies[i].target].y;
+		changeX = enemies[i].x - towers[closestTower].x;
+		changeY = enemies[i].y - towers[closestTower].y;
 		slope = changeY / changeX;
 
-		if(changeX < 0
-		&& enemies[i].x < towers[closestTower].x - 20){
-			enemies[i].x++;
-			if(gameFrame % Math.round(slope) === 0
-			&& enemies[i].y < towers[closestTower].y - 20){
-				enemies[i].y+=slope;
+		if((enemies[i].x < towers[closestTower].x - 20 
+		|| enemies[i].x > towers[closestTower].x + 20)
+		&& (enemies[i].y > towers[closestTower].y + 20
+		|| enemies[i].y < towers[closestTower].y - 20)){
+			if(changeX < 0){
+				enemies[i].x++;
+				if(gameFrame % Math.round(slope) === 0){
+					enemies[i].y+=slope;
+				}
+				enemies[i].move = true;
 			}
-			enemies[i].move = true;
-		}
-		if(changeX > 0
-		&& enemies[i].x > towers[closestTower].x + 20){
-			enemies[i].x--;
-			if(gameFrame % Math.round(slope) === 0
-			&& enemies[i].y > towers[closestTower].y + 20){
-				enemies[i].y-=slope;
+			if(changeX > 0){
+				enemies[i].x--;
+				if(gameFrame % Math.round(slope) === 0){
+					enemies[i].y-=slope;
+				}
+				enemies[i].move = true;
 			}
-			enemies[i].move = true;
-		}
-		else {
-			enemies[i].move = false;
+			else {
+				enemies[i].move = false;
+			}
 		}
 	}
 }
@@ -289,6 +295,7 @@ detectCollision = function(){
 					enemies.splice(j, 1);
 					difficulty--;
 					money += 5;
+					points++;
 					updateText();
 				}
 
@@ -300,6 +307,8 @@ detectCollision = function(){
 }
 updateText = function(){
 	$('div#money').text('$' + money);
+	$('div#points').text('Points: ' + points);
+	$('div#towersDestroyed').text('Towers destroyed: ' + towersDestroyed);
 }
 updateText();
 spliceArrays = function(){
