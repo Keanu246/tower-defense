@@ -83,51 +83,15 @@ genEnemies = function(){
 	}
 }
 findClosestTower = function(){
-	if(towers.length > 1){
-		for(var i = 0; i < enemies.length; i++){
-			for(var j = 1; j < towers.length; j++){
-				prevTower = j - 1;
-
-				//console.log(j);
-				fTA = Math.abs(enemies[i].x - towers[prevTower].x) * Math.abs(enemies[i].x - towers[prevTower].x);
-				fTB = Math.abs(enemies[i].y - towers[prevTower].y) * Math.abs(enemies[i].y - towers[prevTower].y);
-				fTC = fTA + fTB;
-				firstTower = Math.sqrt(fTC);
-
-				sTA = Math.abs(enemies[i].x - towers[j].x) * Math.abs(enemies[i].x - towers[j].x);
-				sTB = Math.abs(enemies[i].y - towers[j].y) * Math.abs(enemies[i].y - towers[j].y);
-				sTC = sTA + sTB;
-				secondTower = Math.sqrt(sTC);
-
-				//console.log(firstTower);
-				//console.log(secondTower);
-
-				if(firstTower < secondTower){
-					closestTower = prevTower;
-				}
-			}
-		
-			lastTower = towers.length - 1;
-
-			fTA = Math.abs(enemies[i].x - towers[lastTower].x) * Math.abs(enemies[i].x - towers[lastTower].x);
-			fTB = Math.abs(enemies[i].y - towers[lastTower].y) * Math.abs(enemies[i].y - towers[lastTower].y);
+	for(var i = 0; i < enemies.length; i++){
+		closestTower = []
+		for(var j = 0; j < towers.length; j++){
+			fTA = Math.abs(enemies[i].x - towers[j].x) * Math.abs(enemies[i].x - towers[j].x);
+			fTB = Math.abs(enemies[i].y - towers[j].y) * Math.abs(enemies[i].y - towers[j].y);
 			fTC = fTA + fTB;
-			firstTower = Math.sqrt(fTC);
-
-			sTA = Math.abs(enemies[i].x - towers[0].x) * Math.abs(enemies[i].x - towers[0].x);
-			sTB = Math.abs(enemies[i].y - towers[0].y) * Math.abs(enemies[i].y - towers[0].y);
-			sTC = sTA + sTB;
-			secondTower = Math.sqrt(sTC);
-
-			if(firstTower < secondTower){
-				closestTower = lastTower;
-			}
-			enemies[i].target = closestTower;
+			closestTower.push(Math.sqrt(fTC));
 		}
-	} else {
-		for(var i = 0; i < enemies.length; i++){
-			enemies[i].target = 0;
-		}
+		enemies[i].target = closestTower.indexOf(Math.min(...closestTower));
 	}
 }
 drawEnemies = function(){
@@ -170,7 +134,7 @@ moveEnemies = function(){
 		changeY = enemies[i].y - towers[closestTower].y;
 		slope = changeY / changeX;
 
-		if((enemies[i].x < towers[closestTower].x - 20 
+		if((enemies[i].x < towers[closestTower].x - 10 
 		|| enemies[i].x > towers[closestTower].x + 20)
 		&& (enemies[i].y > towers[closestTower].y + 20
 		|| enemies[i].y < towers[closestTower].y - 20)){
@@ -224,7 +188,7 @@ towersAttack = function(){
 				&& enemies[j].x < towers[i].x + towers[i].range
 				&& enemies[j].y > towers[i].y - towers[i].range
 				&& enemies[j].y < towers[i].y + towers[i].range){
-					
+
 					towersBullets.push({x: towers[i].x, y: towers[i].y, speed: 4, target: i, targetX: 0, targetY: 0, height: 5, width: 5});
 					lastTowersBullets = towersBullets.length - 1;
 
@@ -271,8 +235,6 @@ drawTowersBullets = function(){
 				i = towersBullets.length + 1;
 			}
 		}
-
-		//console.log(slope);
 	}
 }
 drawBG = function(){
@@ -304,6 +266,17 @@ detectCollision = function(){
 			}
 		}
 	}
+	/*
+	for(var i = 0; i < towers.length; i++){
+		for(var j = 0; j < enemies.length; j++){
+			if(towers[i].x > enemies[j].x - (enemies[j].width/2) - towers[i].width + 1
+			&& towers[i].x < enemies[j].x + (enemies[j].width/2) + towers[i].width - 1
+			&& towers[i].y > enemies[j].y - (enemies[j].height/2) - towers[i].height + 1
+			&& towers[i].y < enemies[j].y + (enemies[j].height/2) + towers[i].height - 1){
+				enemies[j].move = false;
+		}
+	}
+	*/
 }
 updateText = function(){
 	$('div#money').text('$' + money);
