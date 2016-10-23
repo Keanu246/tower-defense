@@ -8,9 +8,12 @@ var gameFrame = 1
 var money = 100
 var towersDestroyed = 0;
 var missText = []
+var menu = {}
+var menuPresent = false
 
 //Variables used for towers[]
 var towers = [{
+	type: 1,
 	x: 246, 
 	y: 214, 
 	height: 40, 
@@ -108,10 +111,9 @@ findClosestTower = function(){
 		if(enemies[i].move === false){
 			closestTower = []
 			for(var j = 0; j < towers.length; j++){
-				fTA = Math.abs(enemies[i].x - towers[j].x) * Math.abs(enemies[i].x - towers[j].x);
-				fTB = Math.abs(enemies[i].y - towers[j].y) * Math.abs(enemies[i].y - towers[j].y);
-				fTC = fTA + fTB;
-				closestTower.push(Math.sqrt(fTC));
+				a = Math.abs(enemies[i].x - towers[j].x) * Math.abs(enemies[i].x - towers[j].x);
+				b = Math.abs(enemies[i].y - towers[j].y) * Math.abs(enemies[i].y - towers[j].y);
+				closestTower.push(Math.sqrt(a + b));
 			}
 			enemies[i].target = closestTower.indexOf(Math.min(...closestTower));
 			enemies[i].move =  true;
@@ -194,11 +196,51 @@ moveEnemies = function(){
 		}
 	}
 }
-genTowers = function(event){
+//TOFIX: Doesn't generate towers at X/Y coordinate of first click
+handleClick = function(event){
+	x = event.offsetX;
+	y = event.offsetY;
+	if(!menuPresent){
+		genMenu(x, y);
+	} else if(x >= menu.x && x <= menu.x + menu.width
+	&& y >= menu.y && y <= menu.y + menu.height){
+		genTowers(1, x, y);
+		menuPresent = false;
+		menu = {};
+	} else if(x >= menu.x && x <= menu.x + menu.width
+	&& y >= menu.y + menu.height && y <= menu.y + (menu.height*2)){
+		genTowers(2, x, y);
+		menuPresent = false;
+		menu = {};
+	} else {
+		menuPresent = false;
+		menu = {};
+	}
+}
+genMenu = function(x, y){
+	menu = {
+		x: x, 
+		y: y, 
+		width: 70, 
+		height: 20
+	};
+
+	menuPresent = true;
+}
+drawMenu = function(){		
+	c.fillStyle = "green";
+	c.fillRect(menu.x, menu.y, menu.width, menu.height);
+	c.fillStyle = "white";
+	c.fillRect(menu.x, menu.y + menu.height, menu.width, menu.height);
+	c.fillStyle = "blue";
+	c.fillRect(menu.x, menu.y + (2 * menu.height), menu.width, menu.height);
+}
+genTowers = function(type, x, y){
 	if(money >= 10){
 		towers.push({
-			x: event.offsetX, 
-			y: event.offsetY, 
+			type: type,
+			x: x, 
+			y: y, 
 			width: 20,
 			height: 20,
 			hp: 100, 
@@ -209,66 +251,79 @@ genTowers = function(event){
 			attackPower: Math.round((Math.random()*20)+1),
 			attackPowerRange: 20,
 			attackFrame: Math.round(Math.random()*120),
-			attackSpeed: 3
+			attackSpeed: 3,
+			healTarget: -1,
+			move: true
 		});
-		money -= 10;
+		if(type === 1){
+			money -= 10;
+		}
+		if(type === 2){
+			money -= 15;
+		}
 		updateText();
 	}
 }
 drawTowers = function(){
 	for(var i = 0; i < towers.length; i++){
-		c.fillStyle='green'
+		if(towers[i].type === 1){
+			c.fillStyle='green'
+		}
+		if(towers[i].type === 2){
+			c.fillStyle='white'
+		}
 		c.fillRect(towers[i].x - towers[i].width/2, towers[i].y - towers[i].height/2, towers[i].width, towers[i].height);
 		if(towers[i].hitFrame > 0){
-			c.fillStyle = 'white';
+			c.fillStyle = 'black';
 			c.font = "60 px Georgia";
 			c.fillText(towers[i].hp + "HP", towers[i].x - 10, towers[i].y);
 			towers[i].hitFrame--;
 		}
 	}
 }
+//TOFIX: Towers not always attacking enemies even when in range
 towersAttack = function(){
 	for(var i = 0; i < towers.length; i++){
-		if(gameFrame % towers[i].attackFrame === 0){
+		if(gameFrame % towers[i].attackFrame === 0
+		&& enemies.length > 0 && towers[i].type != 2){
+			findClosestEnemy();
+			
 			towers[i].attackFrame = Math.round(Math.random()*120);
 			towers[i].attackPower = Math.round((Math.random()*towers[i].attackPowerRange)+1);
-			for(var j = 0; j < enemies.length; j++){
-				if(enemies[j].x > towers[i].x - towers[i].range
-				&& enemies[j].x < towers[i].x + towers[i].range
-				&& enemies[j].y > towers[i].y - towers[i].range
-				&& enemies[j].y < towers[i].y + towers[i].range){
+		
+			if(enemies[towers[i].target].x > towers[i].x - towers[i].range
+			&& enemies[towers[i].target].x < towers[i].x + towers[i].range
+			&& enemies[towers[i].target].y > towers[i].y - towers[i].range
+			&& enemies[towers[i].target].y < towers[i].y + towers[i].range){
+				towersBullets.push({
+					originTower: towers.indexOf(towers[i]),
+					x: towers[i].x, 
+					y: towers[i].y, 
+					attackSpeed: towers[i].attackSpeed,
+					attackPower: towers[i].attackPower, 
+					target: towers[i].target, 
+					targetX: enemies[towers[i].target].x, 
+					targetY: enemies[towers[i].target].y, 
+					height: 5, 
+					width: 5
+				});
 
-					towersBullets.push({
-						originTower: towers.indexOf(towers[i]),
-						x: towers[i].x, 
-						y: towers[i].y, 
-						attackSpeed: towers[i].attackSpeed,
-						attackPower: towers[i].attackPower, 
-						target: i, 
-						targetX: 0, 
-						targetY: 0, 
-						height: 5, 
-						width: 5
-					});
-					lastTowersBullets = towersBullets.length - 1;
-
-					if(enemies[j].x > towers[i].x){
-						towersBullets[lastTowersBullets].targetX = enemies[j].x
-					}
-					if(enemies[j].x < towers[i].x){
-						towersBullets[lastTowersBullets].targetX = enemies[j].x
-					}
-					if(enemies[j].y > towers[i].y){
-						towersBullets[lastTowersBullets].targetY = enemies[j].y
-					}
-					if(enemies[j].y < towers[i].y){
-						towersBullets[lastTowersBullets].targetY = enemies[j].y
-					}
-
-					j = enemies.length + 1;
-				}
+				j = enemies.length + 1;
 			}
 		}
+	}
+}
+findClosestEnemy = function(){
+	for(var i = 0; i < towers.length; i++){
+		closestEnemy = [];
+		towers[i].attackFrame = Math.round(Math.random()*120);
+		towers[i].attackPower = Math.round((Math.random()*towers[i].attackPowerRange)+1);
+		for(var j = 0; j < enemies.length; j++){
+			a = Math.abs(towers[i].x - enemies[j].x) * Math.abs(towers[i].x - enemies[j].x);
+			b = Math.abs(towers[i].y - enemies[j].y) * Math.abs(towers[i].y - enemies[j].y);
+			closestEnemy.push(Math.sqrt(a + b));
+		}
+		towers[i].target = closestEnemy.indexOf(Math.min(...closestEnemy));
 	}
 }
 drawTowersBullets = function(){
@@ -299,6 +354,64 @@ drawTowersBullets = function(){
 				towersBullets.splice(i, 1);
 				i = towersBullets.length + 1;
 			}
+		}
+	}
+}
+//TOFIX: Medics can't move around a non-targeted tower
+////move boolean needs to be reassigned in detectCollision()
+moveTowers = function(){
+	for(var i = 0; i < towers.length; i++){
+		if(towers[i].type === 2){
+			findWeakestTower();
+			towers[i].move = true;
+			weakestTowerTarget = towers[i].healTarget;
+
+			changeX = towers[i].x - towers[weakestTowerTarget].x;
+			changeY = towers[i].y - towers[weakestTowerTarget].y;
+			slope = changeY / changeX;
+
+			if(towers[i].move === true){
+				if(changeX < 0){
+					towers[i].x++;
+					if(gameFrame % Math.round(slope) === 0){
+						towers[i].y += slope;
+					}
+				}
+				if(changeX > 0){
+					towers[i].x--;
+					if(gameFrame % Math.round(slope) === 0){
+						towers[i].y -= slope;
+					}
+				}
+			}
+		}
+	}
+}
+findWeakestTower = function(){
+	weakestTower = [];
+	weakestTowerHP = []
+	for(var i = 0; i < towers.length; i++){
+		if(towers[i].type != 2){
+			weakestTower.push(i);
+			weakestTowerHP.push(towers[i].hp);
+		}
+	}
+	target = weakestTower[weakestTowerHP.indexOf(Math.min(...weakestTowerHP))];
+	for(var i = 0; i < towers.length; i++){
+		if(towers[i].type === 2){
+			towers[i].healTarget = target;
+		}
+	}
+}
+healTowers = function(){
+	for(var i = 0; i < towers.length; i++){
+		if(gameFrame % towers[i].attackFrame === 0 
+		&& towers[i].type === 2 && towers[i].move === false){
+			towers[i].attackPowerRange = 5;
+			towers[i].attackFrame = Math.round(Math.random()*120);
+			towers[i].attackPower = Math.round((Math.random()*towers[i].attackPowerRange)+1);
+			towers[towers[i].healTarget].hp += towers[i].attackPower;
+			towers[towers[i].healTarget].hitFrame = 40;
 		}
 	}
 }
@@ -364,6 +477,18 @@ detectCollision = function(){
 			}
 		}
 	}
+	//towers to towers
+	for(var i = 0; i < towers.length; i++){
+		for(var j = 0; j < towers.length; j++){
+			if(j != i && towers[j].type === 2
+			&& towers[i].x > towers[j].x - (towers[j].width/2) - (towers[i].width/2) + 1
+			&& towers[i].x < towers[j].x + (towers[j].width/2) + (towers[i].width/2) - 1
+			&& towers[i].y > towers[j].y - (towers[j].height/2) - (towers[i].height/2) + 1
+			&& towers[i].y < towers[j].y + (towers[j].height/2) + (towers[i].height/2) - 1){
+				towers[j].move = false;
+			}
+		}
+	}
 }
 updateText = function(){
 	$('div#money').text('$' + money);
@@ -386,8 +511,8 @@ spliceArrays = function(){
 	}
 }
 playGame = function(){
-	canvas.addEventListener('click', genTowers);
-
+	canvas.addEventListener('click', handleClick);
+	
 	if(enemiesFrame === enemiesRate){
 		genEnemies();
 		enemiesFrame = 1;
@@ -401,14 +526,17 @@ playGame = function(){
 
 	enemiesAttack();
 	towersAttack();
+	healTowers();
 
 	drawBG();
 	drawTowers();
 	drawEnemies();
 	drawTowersBullets();
 	drawMissText();
+	drawMenu();
 
 	moveEnemies();
+	moveTowers();
 	
 	enemiesFrame++;
 	enemiesAttackFrame++;
