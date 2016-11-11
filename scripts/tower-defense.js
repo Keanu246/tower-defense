@@ -1,6 +1,14 @@
 var canvas = document.getElementById('canvas')
 c = canvas.getContext('2d')
 
+//Canvas images
+var grassOne = new Image()
+grassOne.src = 'images/grass-1.png'
+var grassTwo = new Image()
+grassTwo.src = 'images/grass-2.png'
+var grassThree = new Image()
+grassThree.src = 'images/grass-3.png'
+
 var play = true
 var difficulty = 500
 var points = 0
@@ -11,6 +19,8 @@ var missText = []
 var menu = {}
 var menuPresent = false
 
+var bg = []
+
 //Variables used for towers[]
 var towers = [{
 	type: 1,
@@ -19,13 +29,14 @@ var towers = [{
 	height: 40, 
 	width: 40, 
 	hp: 200,
+	hpMax: 200,
 	defense: Math.round((Math.random()*40)+1),
 	defenseRange: 40,
 	hitFrame: 0,
 	range: 200, 
-	attackPower: Math.round((Math.random()*40)+1),
-	attackPowerRange: 40,
-	attackFrame: Math.round(Math.random()*120), 
+	actionPower: Math.round((Math.random()*40)+1),
+	actionPowerRange: 40,
+	actionFrame: Math.round(Math.random()*120), 
 	attackSpeed: 5
 }]
 var towersAttackRate = Math.round(Math.random()*120)
@@ -69,130 +80,155 @@ var sTA
 var sTB
 var sTC
 
+
+
 genEnemies = function(){
 	genRand();
-	enemies.push({
-		x: randX, 
-		y: -20, 
-		target: 0, 
-		move: false, 
-		hp: 100,
-		defense: Math.round((Math.random()*20)+1),
-		defenseRange: 20, 
-		hitFrame: 0,
-		range: 100,
-		height: 20, 
-		width: 20, 
-		attackFrame: Math.round((Math.random()*60)),
-		attackFrameRate: 60, 
-		attackPower: Math.round((Math.random()*40)+1),
-		attackPowerRange: 40,
-		attackAnimationFrame: 0
-	});
 
 	if(enemiesStartLocation === 1){
-		enemies[enemies.length - 1].x = randX; 
-		enemies[enemies.length - 1].y = -20;
+		x = randX; 
+		y = -20;
 	} else if(enemiesStartLocation === 2){
-		enemies[enemies.length - 1].x = -20; 
-		enemies[enemies.length - 1].y = randY;
+		x = -20; 
+		y = randY;
 	} else if(enemiesStartLocation === 3){
-		enemies[enemies.length - 1].x = randX; 
-		enemies[enemies.length - 1].y = 448 + 20;
+		x = randX; 
+		y = 448 + 20;
 	} else if(enemiesStartLocation === 4){
-		enemies[enemies.length - 1].x = 512+20; 
-		enemies[enemies.length - 1].y = randY;
+		x = 512+20; 
+		y = randY;
 	}
 
-	findClosestTower();
+	enemies.push(new Enemy(x, y));
+
+	enemies[enemies.length - 1].findClosestTower();
 }
-findClosestTower = function(){
-	for(var i = 0; i < enemies.length; i++){
-		if(enemies[i].move === false){
-			closestTower = []
-			for(var j = 0; j < towers.length; j++){
-				a = Math.abs(enemies[i].x - towers[j].x) * Math.abs(enemies[i].x - towers[j].x);
-				b = Math.abs(enemies[i].y - towers[j].y) * Math.abs(enemies[i].y - towers[j].y);
-				closestTower.push(Math.sqrt(a + b));
-			}
-			enemies[i].target = closestTower.indexOf(Math.min(...closestTower));
-			enemies[i].move =  true;
-		}
-	}
-}
-drawEnemies = function(){
-	for(var i = 0; i < enemies.length; i++){
-		if(enemies[i].attackAnimationFrame > 0 
-		&& enemies[i].move === false){
+
+function Enemy(x, y){
+	this.x = x; 
+	this.y = y; 
+	this.target = 0;  
+	this.hp = 100;
+	this.defense = Math.round((Math.random()*20)+1);
+	this.defenseRange = 20;
+	this.hitFrame = 0;
+	this.range = 0;
+	this.height = 20;
+	this.width = 20; 
+	this.actionFrame = Math.round((Math.random()*60));
+	this.actionFrameRate = 60; 
+	this.actionPower = Math.round((Math.random()*40)+1);
+	this.actionPowerRange = 40;
+	this.attackAnimationFrame = 0;
+
+	Enemy.prototype.draw = function(){
+		if(this.attackAnimationFrame > 0){
 			c.fillStyle='white';
-			c.fillRect(enemies[i].x - enemies[i].width/2, enemies[i].y - enemies[i].height/2, enemies[i].width, enemies[i].height);
-			enemies[i].attackAnimationFrame--;
+			c.fillRect(this.x - this.width/2, this.y - this.height/2, this.width, this.height);
+			this.attackAnimationFrame--;
 		} else {
 			c.fillStyle='red';
-			c.fillRect(enemies[i].x - enemies[i].width/2, enemies[i].y - enemies[i].height/2, enemies[i].width, enemies[i].height);
-			if(enemies[i].hitFrame > 0){
+			c.fillRect(this.x - this.width/2, this.y - this.height/2, this.width, this.height);
+			if(this.hitFrame > 0){
 				c.fillStyle = 'white';
 				c.font = "60 px Georgia";
-				c.fillText(enemies[i].hp + "HP", enemies[i].x - 10, enemies[i].y);
-				enemies[i].hitFrame--;
+				c.fillText(this.hp + "HP", this.x - 10, this.y);
+				this.hitFrame--;
+			}
+		}	
+	}
+	Enemy.prototype.move = function(){
+		this.findClosestTower();
+		if(this.target < towers.length){
+			closestTower = this.target;
+			changeX = this.x - towers[closestTower].x;
+			changeY = this.y - towers[closestTower].y;
+			slope = changeY / changeX;
+
+			//moving from right to left
+			if(changeX > 0
+			&& this.x > towers[closestTower].x 
+			- (towers[closestTower].width/2) 
+			- (this.width/2) + 1){
+				this.x--;
+			}
+			if(changeY > 0 &&
+			this.y > towers[closestTower].y 
+			+ (towers[closestTower].height/2) 
+			+ (this.height/2) - 1){
+				if(gameFrame % Math.round(slope) === 0){
+					this.y -= slope;
+				} else{
+					this.y--;
+				}
+				
+			}
+			//moving from left to right along X
+			if(changeX < 0
+			&& this.x < towers[closestTower].x 
+			+ (towers[closestTower].width/2) 
+			+ (this.width/2) - 1){
+				this.x++;
+			}
+
+			if(changeY < 0 &&
+			this.y < towers[closestTower].y 
+			- (towers[closestTower].height/2) 
+			- (this.height/2) + 1){
+				if(gameFrame % Math.round(slope) === 0){
+					this.y += slope;
+				} else{
+					this.y++;
+				}
 			}
 		}
 	}
-}
-enemiesAttack = function(){
-	for(var i = 0; i < enemies.length; i++){
-		if(gameFrame % enemies[i].attackFrame === 0
-		&& enemies[i].target < towers.length){
-			enemies[i].attackAnimationFrame = 10;
-			enemies[i].attackFrame = Math.round((Math.random()*enemies[i].attackFrameRate));
-			closestTower = enemies[i].target;
-			damage = enemies[i].attackPower - towers[closestTower].defense;
-			enemies[i].attackPower = Math.round((Math.random()*enemies[i].attackPowerRange)+1);
+	Enemy.prototype.findClosestTower = function(){
+		closestTower = []
+		for(var j = 0; j < towers.length; j++){
+			a = Math.abs(this.x - towers[j].x) * Math.abs(this.x - towers[j].x);
+			b = Math.abs(this.y - towers[j].y) * Math.abs(this.y - towers[j].y);
+			closestTower.push(Math.sqrt(a + b));
+		}
+		this.target = closestTower.indexOf(Math.min(...closestTower));
+	}
+	Enemy.prototype.attack = function(){
+		if(gameFrame % this.actionFrame === 0
+		&& this.target < towers.length
+		&& this.targetWithinRange()){
+			this.attackAnimationFrame = 10;
+			this.actionFrame = Math.round((Math.random()*this.actionFrameRate));
+			closestTower = this.target;
+			damage = this.actionPower - towers[closestTower].defense;
+			this.actionPower = Math.round((Math.random()*this.actionPowerRange)+1);
 			towers[closestTower].defense = Math.round((Math.random()*towers[closestTower].defenseRange)+1);
+			
 			if(damage <= 0){
 				damage = 1;
 			}
-			enemies[i].attackPower = Math.round((Math.random()*20)+1);
+			
+			this.actionPower = Math.round((Math.random()*20)+1);
 			towers[closestTower].defense = Math.round((Math.random()*towers[closestTower].defenseRange)+1);
-			if(enemies[i].move === false){
-				towers[closestTower].hp-=damage;
-				towers[closestTower].hitFrame = 40;
-			}
+			
+			towers[closestTower].hp-=damage;
+			towers[closestTower].hitFrame = 40;
+			
 			if(towers[closestTower].hp <= 0){
 				towers.splice(closestTower, 1);
 				towersDestroyed++;
 				updateText();
-				enemies[i].move = true;
+				this.move = true;
 				//towers[closestTower] = {};
 				findClosestTower();
-				i = enemies.length + 1;
 			}
 		}
 	}
-}
-moveEnemies = function(){
-	for(var i = 0; i < enemies.length; i++){
-		if(enemies[i].move === true
-		&& enemies[i].target < towers.length){
-			closestTower = enemies[i].target;
-			changeX = enemies[i].x - towers[closestTower].x;
-			changeY = enemies[i].y - towers[closestTower].y;
-			slope = changeY / changeX;
-
-			if(enemies[i].move === true){
-				if(changeX < 0){
-					enemies[i].x++;
-					if(gameFrame % Math.round(slope) === 0){
-						enemies[i].y += slope;
-					}
-				}
-				if(changeX > 0){
-					enemies[i].x--;
-					if(gameFrame % Math.round(slope) === 0){
-						enemies[i].y -= slope;
-					}
-				}
-			}
+	Enemy.prototype.targetWithinRange = function(){
+		if(Math.abs(this.x - towers[this.target].x) <= this.range
+		&& Math.abs(this.y - towers[this.target].y) <= this.range){
+			return true
+		} else {
+			return false
 		}
 	}
 }
@@ -244,15 +280,16 @@ genTowers = function(type, x, y){
 			width: 20,
 			height: 20,
 			hp: 100, 
+			hpMax: 100,
 			defenseRange: 10,
 			defense: Math.round((Math.random()*10)+1),
 			hitFrame: 0,
 			range: 100, 
-			attackPower: Math.round((Math.random()*20)+1),
-			attackPowerRange: 20,
-			attackFrame: Math.round(Math.random()*120),
+			actionPower: Math.round((Math.random()*20)+1),
+			actionPowerRange: 20,
+			actionFrame: Math.round(Math.random()*120),
 			attackSpeed: 3,
-			healTarget: -1,
+			healTarget: null,
 			move: true
 		});
 		if(type === 1){
@@ -284,12 +321,12 @@ drawTowers = function(){
 //TOFIX: Towers not always attacking enemies even when in range
 towersAttack = function(){
 	for(var i = 0; i < towers.length; i++){
-		if(gameFrame % towers[i].attackFrame === 0
+		if(gameFrame % towers[i].actionFrame === 0
 		&& enemies.length > 0 && towers[i].type != 2){
 			findClosestEnemy();
 			
-			towers[i].attackFrame = Math.round(Math.random()*120);
-			towers[i].attackPower = Math.round((Math.random()*towers[i].attackPowerRange)+1);
+			towers[i].actionFrame = Math.round(Math.random()*120);
+			towers[i].actionPower = Math.round((Math.random()*towers[i].actionPowerRange)+1);
 		
 			if(enemies[towers[i].target].x > towers[i].x - towers[i].range
 			&& enemies[towers[i].target].x < towers[i].x + towers[i].range
@@ -300,7 +337,7 @@ towersAttack = function(){
 					x: towers[i].x, 
 					y: towers[i].y, 
 					attackSpeed: towers[i].attackSpeed,
-					attackPower: towers[i].attackPower, 
+					actionPower: towers[i].actionPower, 
 					target: towers[i].target, 
 					targetX: enemies[towers[i].target].x, 
 					targetY: enemies[towers[i].target].y, 
@@ -316,8 +353,8 @@ towersAttack = function(){
 findClosestEnemy = function(){
 	for(var i = 0; i < towers.length; i++){
 		closestEnemy = [];
-		towers[i].attackFrame = Math.round(Math.random()*120);
-		towers[i].attackPower = Math.round((Math.random()*towers[i].attackPowerRange)+1);
+		towers[i].actionFrame = Math.round(Math.random()*120);
+		towers[i].actionPower = Math.round((Math.random()*towers[i].actionPowerRange)+1);
 		for(var j = 0; j < enemies.length; j++){
 			a = Math.abs(towers[i].x - enemies[j].x) * Math.abs(towers[i].x - enemies[j].x);
 			b = Math.abs(towers[i].y - enemies[j].y) * Math.abs(towers[i].y - enemies[j].y);
@@ -326,6 +363,7 @@ findClosestEnemy = function(){
 		towers[i].target = closestEnemy.indexOf(Math.min(...closestEnemy));
 	}
 }
+//TOFIX: Some bullets not moving beyond tower.  No target?
 drawTowersBullets = function(){
 	for(var i = 0; i < towersBullets.length; i++){
 		c.fillStyle='yellow'
@@ -362,6 +400,7 @@ drawTowersBullets = function(){
 moveTowers = function(){
 	for(var i = 0; i < towers.length; i++){
 		if(towers[i].type === 2){
+
 			findWeakestTower();
 			towers[i].move = true;
 			weakestTowerTarget = towers[i].healTarget;
@@ -370,19 +409,34 @@ moveTowers = function(){
 			changeY = towers[i].y - towers[weakestTowerTarget].y;
 			slope = changeY / changeX;
 
-			if(towers[i].move === true){
-				if(changeX < 0){
-					towers[i].x++;
-					if(gameFrame % Math.round(slope) === 0){
-						towers[i].y += slope;
-					}
+			//moving from right to left
+			if(changeX > 0
+			&& towers[i].x > towers[weakestTowerTarget].x 
+			- (towers[weakestTowerTarget].width/2) 
+			- (towers[i].width/2) + 1){
+				towers[i].x--;
+				if(gameFrame % Math.round(slope) === 0
+				&& towers[i].y > towers[weakestTowerTarget].y 
+				+ (towers[weakestTowerTarget].height/2) 
+				+ (towers[i].height/2) - 1){
+					towers[i].y -= slope;
 				}
-				if(changeX > 0){
-					towers[i].x--;
-					if(gameFrame % Math.round(slope) === 0){
-						towers[i].y -= slope;
-					}
+			}
+			//moving from left to right
+			if(changeX < 0
+			&& towers[i].x < towers[weakestTowerTarget].x 
+			+ (towers[weakestTowerTarget].width/2) 
+			+ (towers[i].width/2) - 1){
+				towers[i].x++;
+				if(gameFrame % Math.round(slope) === 0
+				&& towers[i].y < towers[weakestTowerTarget].y 
+				- (towers[weakestTowerTarget].height/2) 
+				- (towers[i].height/2) + 1){
+					towers[i].y += slope;
 				}
+			}
+			else {
+				healTowers(i);
 			}
 		}
 	}
@@ -403,17 +457,22 @@ findWeakestTower = function(){
 		}
 	}
 }
-healTowers = function(){
-	for(var i = 0; i < towers.length; i++){
-		if(gameFrame % towers[i].attackFrame === 0 
-		&& towers[i].type === 2 && towers[i].move === false){
-			towers[i].attackPowerRange = 5;
-			towers[i].attackFrame = Math.round(Math.random()*120);
-			towers[i].attackPower = Math.round((Math.random()*towers[i].attackPowerRange)+1);
-			towers[towers[i].healTarget].hp += towers[i].attackPower;
-			towers[towers[i].healTarget].hitFrame = 40;
+healTowers = function(i){
+//	for(var i = 0; i < towers.length; i++){
+		if(gameFrame % towers[i].actionFrame === 0 
+		&& towers[i].type === 2 && towers[i].move === false
+		&& towers[towers[i].healTarget].hp < towers[towers[i].healTarget].hpMax){
+			towers[i].actionPowerRange = 5;
+			towers[i].actionFrame = Math.round(Math.random()*120);
+			towers[i].actionPower = Math.round((Math.random()*towers[i].actionPowerRange)+1);
+			if(money >= towers[i].actionPower){
+				towers[towers[i].healTarget].hp += towers[i].actionPower;
+				towers[towers[i].healTarget].hitFrame = 40;
+				money -= towers[i].actionPower;
+				updateText();
+			}
 		}
-	}
+//	}
 }
 drawMissText = function(){
 	for(var i = 0; i < missText.length; i++){
@@ -431,7 +490,7 @@ drawMissText = function(){
 	}
 }
 drawBG = function(){
-	c.fillStyle='gray'
+	c.fillStyle='rgba(153, 204, 102, 1.0)'
 	c.fillRect(0, 0, 512, 448);
 }
 //TOFIX: Borders on enemies to towers
@@ -443,7 +502,7 @@ detectCollision = function(){
 			&& towersBullets[i].x < enemies[j].x + (enemies[j].width/2) + towersBullets[i].width - 1
 			&& towersBullets[i].y > enemies[j].y - (enemies[j].height/2) - towersBullets[i].height + 1
 			&& towersBullets[i].y < enemies[j].y + (enemies[j].height/2) + towersBullets[i].height - 1){
-				damage = towersBullets[i].attackPower - enemies[j].defense;
+				damage = towersBullets[i].actionPower - enemies[j].defense;
 				if(damage <= 0){
 					damage = 1;
 				}
@@ -463,29 +522,6 @@ detectCollision = function(){
 
 				i = towersBullets.length + 1;
 				j = enemies.length + 1;
-			}
-		}
-	}
-	//enemies to towers
-	for(var i = 0; i < towers.length; i++){
-		for(var j = 0; j < enemies.length; j++){
-			if(towers[i].x > enemies[j].x - (enemies[j].width/2) - (towers[i].width/2) + 1
-			&& towers[i].x < enemies[j].x + (enemies[j].width/2) + (towers[i].width/2) - 1
-			&& towers[i].y > enemies[j].y - (enemies[j].height/2) - (towers[i].height/2) + 1
-			&& towers[i].y < enemies[j].y + (enemies[j].height/2) + (towers[i].height/2) - 1){
-				enemies[j].move = false;
-			}
-		}
-	}
-	//towers to towers
-	for(var i = 0; i < towers.length; i++){
-		for(var j = 0; j < towers.length; j++){
-			if(j != i && towers[j].type === 2
-			&& towers[i].x > towers[j].x - (towers[j].width/2) - (towers[i].width/2) + 1
-			&& towers[i].x < towers[j].x + (towers[j].width/2) + (towers[i].width/2) - 1
-			&& towers[i].y > towers[j].y - (towers[j].height/2) - (towers[i].height/2) + 1
-			&& towers[i].y < towers[j].y + (towers[j].height/2) + (towers[i].height/2) - 1){
-				towers[j].move = false;
 			}
 		}
 	}
@@ -518,24 +554,25 @@ playGame = function(){
 		enemiesFrame = 1;
 		enemiesRate = Math.round((Math.random()*difficulty)+1);
 	}
-	if(enemiesAttackFrame === enemiesAttackRate){
-		
-		enemiesAttackRate = Math.round((Math.random()*120)+60);
-		enemiesAttackFrame = 1;
-	}
-
-	enemiesAttack();
-	towersAttack();
-	healTowers();
 
 	drawBG();
+
+	for(var i = 0; i < enemies.length; i++){
+		enemies[i].draw();
+		enemies[i].move();
+		if(enemiesAttackFrame === enemies[i].actionFrame){
+			enemies[i].attack();
+			enemiesAttackRate = Math.round(Math.random()*enemies[i].actionFrameRate);
+			enemies[i].enemiesAttackFrame = 1;
+		}
+	}
+
+	
 	drawTowers();
-	drawEnemies();
 	drawTowersBullets();
 	drawMissText();
 	drawMenu();
 
-	moveEnemies();
 	moveTowers();
 	
 	enemiesFrame++;
@@ -556,8 +593,10 @@ if(play){
 }
 //PAUSE
 $(document).on('keydown', function(z){
+	
 	key = z.keyCode;
 	if(key === 32){
+		event.preventDefault();
 		if(play === true){
 			play = false;
 			console.log('PAUSED')
