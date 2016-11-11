@@ -145,13 +145,14 @@ function Enemy(x, y){
 			changeY = this.y - towers[closestTower].y;
 			slope = changeY / changeX;
 
-			//moving from right to left
+			//moving from right to left along X
 			if(changeX > 0
 			&& this.x > towers[closestTower].x 
 			- (towers[closestTower].width/2) 
 			- (this.width/2) + 1){
 				this.x--;
 			}
+			//moving up along Y
 			if(changeY > 0 &&
 			this.y > towers[closestTower].y 
 			+ (towers[closestTower].height/2) 
@@ -170,7 +171,7 @@ function Enemy(x, y){
 			+ (this.width/2) - 1){
 				this.x++;
 			}
-
+			//moving down along Y
 			if(changeY < 0 &&
 			this.y < towers[closestTower].y 
 			- (towers[closestTower].height/2) 
@@ -193,8 +194,8 @@ function Enemy(x, y){
 		this.target = closestTower.indexOf(Math.min(...closestTower));
 	}
 	Enemy.prototype.attack = function(){
-		if(gameFrame % this.actionFrame === 0
-		&& this.target < towers.length
+		this.actionFrame = Math.round(Math.random()*this.actionFrameRate);
+		if(this.target < towers.length
 		&& this.targetWithinRange()){
 			this.attackAnimationFrame = 10;
 			this.actionFrame = Math.round((Math.random()*this.actionFrameRate));
@@ -217,15 +218,15 @@ function Enemy(x, y){
 				towers.splice(closestTower, 1);
 				towersDestroyed++;
 				updateText();
-				this.move = true;
 				//towers[closestTower] = {};
-				findClosestTower();
 			}
 		}
 	}
 	Enemy.prototype.targetWithinRange = function(){
-		if(Math.abs(this.x - towers[this.target].x) <= this.range
-		&& Math.abs(this.y - towers[this.target].y) <= this.range){
+		if(Math.abs(this.x - towers[this.target].x) <= this.range 
+			+ (towers[this.target].width / 2) + (this.width / 2)
+		&& Math.abs(this.y - towers[this.target].y) <= this.range 
+			+ (towers[this.target].height / 2) + (this.height / 2)){
 			return true
 		} else {
 			return false
@@ -560,10 +561,8 @@ playGame = function(){
 	for(var i = 0; i < enemies.length; i++){
 		enemies[i].draw();
 		enemies[i].move();
-		if(enemiesAttackFrame === enemies[i].actionFrame){
+		if(gameFrame % enemies[i].actionFrame === 0){
 			enemies[i].attack();
-			enemiesAttackRate = Math.round(Math.random()*enemies[i].actionFrameRate);
-			enemies[i].enemiesAttackFrame = 1;
 		}
 	}
 
